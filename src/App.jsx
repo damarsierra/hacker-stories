@@ -1,5 +1,5 @@
 import * as React from 'react';
-import './App.css'
+import styles from './App.module.css';
 import axios from 'axios';
 
 const storiesReducer = (state, action) => {
@@ -101,8 +101,8 @@ const App = () => {
   }
 
   return (
-    <div className="container">
-      <h1 className="headline-primary">My Hacker Stories</h1>
+    <div className={styles.container}>
+      <h1 className={styles.headlinePrimary}>My Hacker Stories</h1>
       <SearchForm 
         searchTerm={searchTerm}
         onSearchInput={handleSearchInput}
@@ -124,11 +124,11 @@ const SearchForm = ({
   onSearchInput,
   onSearchSubmit,
 }) => (
-  <form onSubmit={onSearchSubmit} className="search-form">
+  <form onSubmit={onSearchSubmit} className={styles.searchForm}>
     <InputWithLabel id="search" value={searchTerm} isFocused onInputChange={onSearchInput}>
       <strong>Search:</strong>
     </InputWithLabel>
-    <button type="submit" className="button button_large" disabled={!searchTerm}>
+    <button type="submit" className={`${styles.button} ${styles.buttonLarge}`} disabled={!searchTerm}>
       Submit
     </button>
   </form>
@@ -145,8 +145,8 @@ const InputWithLabel = ({id, value, type='text', onInputChange, isFocused, child
 
   return (
     <>
-      <label htmlFor={id} className="label"> {children}
-        <input ref={inputRef} id={id} type={type} value={value} onChange={onInputChange} className="input" />
+      <label htmlFor={id} className={styles.label}> {children}
+        <input ref={inputRef} id={id} type={type} value={value} onChange={onInputChange} className={styles.input} />
       </label>
     </>
   );
@@ -159,7 +159,7 @@ const List = ({ list, onRemoveItem }) => (
 );
 
 const Item = ({ item, onRemoveItem }) => (
-  <li className="item">
+  <li className={styles.item}>
     <span style={{ width: '40%' }}>
       <a href={item.url}>{item.title}</a>
     </span>
@@ -167,7 +167,7 @@ const Item = ({ item, onRemoveItem }) => (
     <span style={{ width: '10%' }}>{item.num_comments}</span>
     <span style={{ width: '10%' }}>Points: {item.points}</span>
     <span style={{ width: '10%' }}>
-      <button type="button" className="button button_small" onClick={() => onRemoveItem(item)}>Dismiss</button>
+      <button type="button" className={`${styles.button} ${styles.button_small}`} onClick={() => onRemoveItem(item)}>Dismiss</button>
     </span>
   </li>
 );
