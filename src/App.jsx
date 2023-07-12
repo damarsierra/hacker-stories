@@ -1,17 +1,6 @@
 import * as React from 'react';
 import './App.css'
-
-const useStorageState = (key, initialState) => {
-  const [value, setValue] = React.useState(
-    localStorage.getItem(key) || initialState
-  );
-
-  React.useEffect(() => {
-    localStorage.setItem(key, value);
-  }, [value, key]);
-
-  return [value, setValue];
-}
+import axios from 'axios';
 
 const storiesReducer = (state, action) => {
   switch (action.type) {
@@ -46,31 +35,53 @@ const storiesReducer = (state, action) => {
   }
 }
 
+const useStorageState = (key, initialState) => {
+  const [value, setValue] = React.useState(
+    localStorage.getItem(key) || initialState
+  );
+
+  React.useEffect(() => {
+    localStorage.setItem(key, value);
+  }, [value, key]);
+
+  return [value, setValue];
+}
+
 const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query=';
 
 const App = () => {
-  const [searchTerm, setSearchTerm] = useStorageState('search', 'React');
+  const [searchTerm, setSearchTerm] = useStorageState(
+    'search', 
+    'React'
+  );
+
+  const [url, setUrl] = React.useState(
+    `${API_ENDPOINT}${searchTerm}`
+  );
 
   const [stories, dispatchStories] = React.useReducer(
     storiesReducer,
     { data: [], isLoading: false, isError: false }
   );
 
-  React.useEffect(() => {
-    dispatchStories({ type: 'STORIES_FETCH_INIT' });
+  const handleFetchStories = React.useCallback(async () => {
+    dispatchStories({type: 'STORIES_FETCH_INIT'});
 
-    fetch(`${API_ENDPOINT}react`)
-      .then((response) => response.json())
-      .then(result => {
-        dispatchStories({
-          type: 'STORIES_FETCH_SUCCESS',
-          payload: result.hits,
-        });
-      })
-      .catch(() =>
-        dispatchStories({ type: 'STORIES_FETCH_FAILURE' })
-      );
-  }, []);
+    try {
+    const result = await axios.get(url);
+
+    dispatchStories({
+      type: 'STORIES_FETCH_SUCCESS',
+      payload: result.data.hits,
+    });
+  } catch {
+    dispatchStories({type: 'STORIES_FETCH_FAILURE'});
+  }
+}, [url]);
+
+  React.useEffect(() => {
+    handleFetchStories();
+  }, [handleFetchStories]);
 
   const handleRemoveStory = (item) => {
     dispatchStories({
@@ -79,33 +90,51 @@ const App = () => {
     });
   }
 
-  const handleSearch = (event) => {
+  const handleSearchInput = (event) => {
     setSearchTerm(event.target.value);
   }
+  
+  const handleSearchSubmit = (event) => {
+    setUrl(`${API_ENDPOINT}${searchTerm}`);
 
-  const searchedStories = stories.data.filter((story) =>
-    story.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    event.preventDefault();
+  }
 
   return (
     <div className="container">
-      <h1 className="headline-primary">
-        My Hacker Stories
-      </h1>
-      <InputWithLabel id="search" value={searchTerm} isFocused onInputChange={handleSearch}>
-        <strong>Search:</strong>
-      </InputWithLabel>
+      <h1 className="headline-primary">My Hacker Stories</h1>
+      <SearchForm 
+        searchTerm={searchTerm}
+        onSearchInput={handleSearchInput}
+        onSearchSubmit={handleSearchSubmit}
+      />
+      
       {stories.isError && <p>Something went wrong...</p>}
       {stories.isLoading ? (
         <p>Loading...</p>
       ) : (
-        <List list={searchedStories} onRemoveItem={handleRemoveStory} />
+        <List list={stories.data} onRemoveItem={handleRemoveStory} />
       )}
     </div>
   );
 }
 
-const InputWithLabel = ({ id, value, type = 'text', onInputChange, isFocused, children }) => {
+const SearchForm = ({
+  searchTerm,
+  onSearchInput,
+  onSearchSubmit,
+}) => (
+  <form onSubmit={onSearchSubmit} className="search-form">
+    <InputWithLabel id="search" value={searchTerm} isFocused onInputChange={onSearchInput}>
+      <strong>Search:</strong>
+    </InputWithLabel>
+    <button type="submit" className="button button_large" disabled={!searchTerm}>
+      Submit
+    </button>
+  </form>
+);
+
+const InputWithLabel = ({id, value, type='text', onInputChange, isFocused, children}) => {
   const inputRef = React.useRef();
 
   React.useEffect(() => {
