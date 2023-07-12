@@ -1,6 +1,7 @@
 import * as React from 'react';
 import styles from './App.module.css';
 import axios from 'axios';
+import clsx from 'clsx';
 
 const storiesReducer = (state, action) => {
   switch (action.type) {
@@ -128,7 +129,7 @@ const SearchForm = ({
     <InputWithLabel id="search" value={searchTerm} isFocused onInputChange={onSearchInput}>
       <strong>Search:</strong>
     </InputWithLabel>
-    <button type="submit" className={`${styles.button} ${styles.buttonLarge}`} disabled={!searchTerm}>
+    <button type="submit" className={clsx(styles.button, styles.buttonLarge)} disabled={!searchTerm}>
       Submit
     </button>
   </form>
