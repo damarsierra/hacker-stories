@@ -1,7 +1,51 @@
 import * as React from 'react';
 import axios from 'axios';
 
-const storiesReducer = (state, action) => {
+type Story = {
+  objectID: string;
+  url: string;
+  title: string;
+  author: string;
+  num_comments: number;
+  points: number;
+}
+
+type Stories = Story[];
+
+type StoriesState = {
+  data: Stories;
+  isLoading: boolean;
+  isError: boolean;
+}
+
+type StoriesFetchInitAction = {
+  type: 'STORIES_FETCH_INIT';
+}
+
+type StoriesFetchSuccessAction = {
+  type: 'STORIES_FETCH_SUCCESS';
+  payload: Stories
+}
+
+type StoriesFetchFaliureAction = {
+  type: 'STORIES_FETCH_FAILURE';
+}
+
+type StoriesRemoveAction = {
+  type: 'REMOVE_STORY';
+  payload: Story;
+}
+
+type StoriesAction = 
+  StoriesFetchInitAction
+  | StoriesFetchSuccessAction
+  | StoriesFetchFaliureAction
+  | StoriesRemoveAction;
+
+const storiesReducer = (
+  state: StoriesState,
+  action: StoriesAction
+) => {
   switch (action.type) {
     case 'STORIES_FETCH_INIT':
       return {
@@ -34,20 +78,23 @@ const storiesReducer = (state, action) => {
   }
 }
 
-const useStorageState = (key, initialState) => {
+const useStorageState = (
+  key: string,
+  initialState: string
+): [string, (newValue: string) => void] => {
   const isMounted = React.useRef(false);
   const [value, setValue] = React.useState(
     localStorage.getItem(key) || initialState
   );
 
   React.useEffect(() => {
-    if(!isMounted.current) {
+    if (!isMounted.current) {
       isMounted.current = true;
     } else {
       console.log('A');
       localStorage.setItem(key, value);
     }
-    
+
   }, [value, key]);
 
   return [value, setValue];
@@ -66,7 +113,7 @@ const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query=';
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useStorageState(
-    'search', 
+    'search',
     'React'
   );
 
@@ -76,40 +123,40 @@ const App = () => {
 
   const [stories, dispatchStories] = React.useReducer(
     storiesReducer,
-    {data: [], isLoading: false, isError: false}
+    { data: [], isLoading: false, isError: false }
   );
 
   const handleFetchStories = React.useCallback(async () => {
-    dispatchStories({type: 'STORIES_FETCH_INIT'});
+    dispatchStories({ type: 'STORIES_FETCH_INIT' });
 
     try {
-    const result = await axios.get(url);
+      const result = await axios.get(url);
 
-    dispatchStories({
-      type: 'STORIES_FETCH_SUCCESS',
-      payload: result.data.hits,
-    });
-  } catch {
-    dispatchStories({type: 'STORIES_FETCH_FAILURE'});
-  }
-}, [url]);
+      dispatchStories({
+        type: 'STORIES_FETCH_SUCCESS',
+        payload: result.data.hits,
+      });
+    } catch {
+      dispatchStories({ type: 'STORIES_FETCH_FAILURE' });
+    }
+  }, [url]);
 
   React.useEffect(() => {
     handleFetchStories();
   }, [handleFetchStories]);
 
-  const handleRemoveStory = React.useCallback((item) => {
+  const handleRemoveStory = React.useCallback((item: Story) => {
     dispatchStories({
       type: 'REMOVE_STORY',
       payload: item,
     });
   }, []);
 
-  const handleSearchInput = (event) => {
+  const handleSearchInput = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
   }
-  
-  const handleSearchSubmit = (event) => {
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     setUrl(`${API_ENDPOINT}${searchTerm}`);
 
     event.preventDefault();
@@ -125,12 +172,12 @@ const App = () => {
   return (
     <div>
       <h1>My Hacker Stories with {sumComments} comments.</h1>
-      <SearchForm 
+      <SearchForm
         searchTerm={searchTerm}
         onSearchInput={handleSearchInput}
         onSearchSubmit={handleSearchSubmit}
       />
-      
+
       <hr />
       {stories.isError && <p>Something went wrong...</p>}
       {stories.isLoading ? (
@@ -142,7 +189,13 @@ const App = () => {
   );
 }
 
-const SearchForm = ({
+type SearchFormProps = {
+  searchTerm: string;
+  onSearchInput: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearchSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+}
+
+const SearchForm: React.FC<SearchFormProps> = ({
   searchTerm,
   onSearchInput,
   onSearchSubmit,
@@ -157,34 +210,50 @@ const SearchForm = ({
   </form>
 );
 
-const InputWithLabel = ({id, value, type='text', onInputChange, isFocused, children}) => {
-  const inputRef = React.useRef();
+type InputWithLabelProps = {
+  id: string;
+  value: string;
+  type?: string;
+  onInputChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  isFocused?: boolean;
+  children: React.ReactNode;
+}
+
+const InputWithLabel: React.FC<InputWithLabelProps> = ({ id, value, type = 'text', onInputChange, isFocused, children }) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    if(isFocused && inputRef.current) {
+    if (isFocused && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isFocused]);
 
   return (
-  <>
-    <label htmlFor={id}> {children}
-      <input ref={inputRef} id={id} type={type} value={value} onChange={onInputChange} />
-    </label>
-  </>
-);
+    <>
+      <label htmlFor={id}> {children}
+        <input ref={inputRef} id={id} type={type} value={value} onChange={onInputChange} />
+      </label>
+    </>
+  );
 }
 
-const List = React.memo(
-  ({list, onRemoveItem}) => 
-    console.log('B:List') || (
-      <ul>
-        {list.map(item => <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />)}
-      </ul>
-    )
+type ListProps = {
+  list: Stories;
+  onRemoveItem: (item: Story) => void;
+}
+
+const List: React.FC<ListProps> = ({ list, onRemoveItem }) => (
+    <ul>
+      {list.map(item => <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />)}
+    </ul>
 );
 
-const Item = ({item, onRemoveItem}) => (
+type ItemProps = {
+  item: Story;
+  onRemoveItem: (item: Story) => void;
+}
+
+const Item: React.FC<ItemProps> = ({ item, onRemoveItem }) => (
   <li key={item.objectID}>
     <span>
       <a href={item.url}>{item.title}</a>
